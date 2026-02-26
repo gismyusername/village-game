@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Village</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: #0a0a18; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; }
+      canvas { image-rendering: pixelated; }
+
+      /* ── Name screen ───────────────────────────────────── */
+      #name-screen {
+        position: fixed; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: #0a0a18; z-index: 200;
+      }
+      #name-screen .panel {
+        background: #12122a;
+        border: 2px solid #4a90d9;
+        padding: 48px 56px;
+        text-align: center;
+        min-width: 320px;
+      }
+      #name-screen h1 { color: #f0c040; font-size: 32px; letter-spacing: 6px; margin-bottom: 8px; }
+      #name-screen p  { color: #555577; font-size: 11px; margin-bottom: 32px; letter-spacing: 1px; }
+      #name-input {
+        width: 100%; padding: 10px 14px;
+        background: #0a0a18; border: 1px solid #4a90d9;
+        color: #fff; font-family: monospace; font-size: 14px;
+        text-align: center; outline: none; margin-bottom: 16px;
+      }
+      #name-input:focus { border-color: #f0c040; }
+      #play-btn {
+        width: 100%; padding: 10px;
+        background: #2980b9; border: none; color: #fff;
+        font-family: monospace; font-size: 13px; letter-spacing: 2px;
+        cursor: pointer;
+      }
+      #play-btn:hover { background: #3498db; }
+      #name-error { color: #e74c3c; font-size: 10px; margin-top: 8px; min-height: 14px; }
+
+      /* ── Chat ──────────────────────────────────────────── */
+      #chat-log {
+        position: fixed; bottom: 52px; left: 10px;
+        width: 280px; max-height: 130px;
+        overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;
+        pointer-events: none; z-index: 10;
+      }
+      .chat-msg {
+        font-size: 10px; line-height: 1.4;
+        padding: 1px 4px; margin-top: 2px;
+        background: rgba(0,0,0,0.55); color: #ddd;
+        animation: fadeChat 6s forwards;
+      }
+      .chat-msg .chat-name { color: #f0c040; }
+      @keyframes fadeChat {
+        0%   { opacity: 1; }
+        70%  { opacity: 1; }
+        100% { opacity: 0; }
+      }
+      #chat-hint {
+        position: fixed; bottom: 38px; left: 10px;
+        font-size: 8px; color: #333355; pointer-events: none; z-index: 10;
+      }
+      #chat-input-wrap {
+        position: fixed; bottom: 10px; left: 10px;
+        width: 280px; display: none; z-index: 20;
+      }
+      #chat-input {
+        width: 100%; padding: 5px 8px;
+        background: #12122a; border: 1px solid #4a90d9;
+        color: #fff; font-family: monospace; font-size: 11px; outline: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Name screen -->
+    <div id="name-screen">
+      <div class="panel">
+        <h1>VILLAGE</h1>
+        <p>A PLAYER-DRIVEN ECONOMY</p>
+        <input id="name-input" type="text" maxlength="20" placeholder="Enter your name..." autocomplete="off" />
+        <button id="play-btn">PLAY</button>
+        <div id="name-error"></div>
+      </div>
+    </div>
+
+    <!-- Chat log -->
+    <div id="chat-log"></div>
+    <div id="chat-hint">[Enter] to chat</div>
+
+    <!-- Chat input -->
+    <div id="chat-input-wrap">
+      <input id="chat-input" type="text" maxlength="100" placeholder="Say something... (Enter to send, Esc to cancel)" />
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
