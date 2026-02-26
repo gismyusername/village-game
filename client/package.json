@@ -10,9 +10,8 @@
   "dependencies": {
     "@game/shared": "*",
     "colyseus.js": "^0.15.0",
-    "phaser": "^3.60.0"
-  },
-  "devDependencies": {
+    "phaser": "^3.60.0",
+    "serve": "^14.0.0",
     "typescript": "^5.0.0",
     "vite": "^5.0.0"
   }
