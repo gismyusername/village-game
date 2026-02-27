@@ -316,8 +316,45 @@ export class GameRoom extends Room<GameState> {
 
   // ── World generation / persistence ───────────────────────────────────────
 
+  // Forest zones: trees cluster here. Positions match client terrain patches.
+  private static readonly FOREST_ZONES = [
+    { x:  380, y:  280, r: 200 }, { x:  950, y: 1150, r: 180 },
+    { x: 1280, y:  380, r: 165 }, { x: 2050, y:  260, r: 210 },
+    { x: 2820, y:  750, r: 175 }, { x:  290, y: 1820, r: 185 },
+    { x: 1080, y: 2250, r: 165 }, { x: 2180, y: 1450, r: 190 },
+    { x: 2720, y: 2050, r: 155 }, { x: 1820, y: 2820, r: 200 },
+    { x:  480, y: 2880, r: 170 }, { x: 2900, y: 2720, r: 160 },
+    { x: 1550, y: 1550, r: 140 }, { x:  700, y: 3000, r: 130 },
+    { x: 3050, y:  400, r: 150 },
+  ];
+
+  private placeInForest(): { x: number; y: number } {
+    const zones = GameRoom.FOREST_ZONES;
+    // Weight by area so bigger zones get more trees
+    const weights = zones.map(z => z.r * z.r);
+    const total   = weights.reduce((a, b) => a + b, 0);
+    let pick = Math.random() * total;
+    let zone = zones[0];
+    for (let i = 0; i < zones.length; i++) {
+      pick -= weights[i];
+      if (pick <= 0) { zone = zones[i]; break; }
+    }
+    // Uniform point inside circle
+    const angle = Math.random() * Math.PI * 2;
+    const dist  = Math.sqrt(Math.random()) * zone.r;
+    const T = GAME_CONSTANTS.TILE_SIZE;
+    const x = Math.max(T, Math.min(GAME_CONSTANTS.WORLD_SIZE - T,
+      Math.round((zone.x + Math.cos(angle) * dist) / T) * T));
+    const y = Math.max(T, Math.min(GAME_CONSTANTS.WORLD_SIZE - T,
+      Math.round((zone.y + Math.sin(angle) * dist) / T) * T));
+    return { x, y };
+  }
+
   private loadOrGenerateResources() {
-    const saved = db.getAllResources();
+    const WORLD_VERSION = "v3-forests";
+    const savedVersion  = db.getWorldState("world_version");
+    const saved = savedVersion === WORLD_VERSION ? db.getAllResources() : [];
+
     if (saved.length > 0) {
       for (const row of saved) {
         const res    = new ResourceSchema();
@@ -338,8 +375,15 @@ export class GameRoom extends Room<GameState> {
           const res    = new ResourceSchema();
           res.id       = `res_${i++}`;
           res.kind     = kind;
-          res.x        = Math.floor(Math.random() * (W / T)) * T + T / 2;
-          res.y        = Math.floor(Math.random() * (W / T)) * T + T / 2;
+          // Trees go in forest clusters; everything else is scattered
+          if (kind === "tree") {
+            const pos = this.placeInForest();
+            res.x = pos.x;
+            res.y = pos.y;
+          } else {
+            res.x = Math.floor(Math.random() * (W / T)) * T + T / 2;
+            res.y = Math.floor(Math.random() * (W / T)) * T + T / 2;
+          }
           res.depleted = false;
           this.state.resources.set(res.id, res);
         }
@@ -349,6 +393,7 @@ export class GameRoom extends Room<GameState> {
         toSave.push({ id: res.id, kind: res.kind, x: res.x, y: res.y });
       });
       db.saveAllResources(toSave);
+      db.setWorldState("world_version", WORLD_VERSION);
       console.log(`[GameRoom] Generated and saved ${toSave.length} resources to DB`);
     }
   }

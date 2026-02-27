@@ -253,54 +253,62 @@ export class GameScene extends Phaser.Scene {
   private drawTerrain() {
     const g = this.add.graphics().setDepth(1);
 
-    // Forest floor patches — dark green tint under tree clusters
+    // ── Large-scale ground variation (kills the tiling feel) ──────────────
+    const meadows = [
+      { x:  700, y:  900, r: 320 }, { x: 1600, y:  600, r: 280 },
+      { x: 2400, y: 1000, r: 300 }, { x:  800, y: 2200, r: 310 },
+      { x: 2000, y: 2000, r: 340 }, { x: 1200, y: 3000, r: 270 },
+      { x: 2800, y: 2900, r: 290 }, { x:  400, y: 1400, r: 260 },
+    ];
+    for (const { x, y, r } of meadows) {
+      g.fillStyle(0x5ea868, 0.5); g.fillCircle(x, y, r);
+      g.fillStyle(0x68b872, 0.3); g.fillCircle(x, y, r * 0.6);
+    }
+
+    // ── Forest floor — dark under tree clusters ───────────────────────────
     const forests = [
-      { x: 380,  y: 280,  r: 200 }, { x: 950,  y: 1150, r: 180 },
-      { x: 1280, y: 380,  r: 160 }, { x: 2050, y: 260,  r: 210 },
-      { x: 2820, y: 750,  r: 175 }, { x: 290,  y: 1820, r: 185 },
-      { x: 1080, y: 2250, r: 165 }, { x: 2180, y: 1450, r: 190 },
-      { x: 2720, y: 2050, r: 155 }, { x: 1820, y: 2820, r: 200 },
-      { x: 480,  y: 2880, r: 170 }, { x: 2900, y: 2720, r: 160 },
-      { x: 1550, y: 1550, r: 140 }, { x: 700,  y: 3000, r: 130 },
-      { x: 3050, y: 400,  r: 150 },
+      { x:  380, y:  280, r: 230 }, { x:  950, y: 1150, r: 200 },
+      { x: 1280, y:  380, r: 185 }, { x: 2050, y:  260, r: 240 },
+      { x: 2820, y:  750, r: 200 }, { x:  290, y: 1820, r: 210 },
+      { x: 1080, y: 2250, r: 190 }, { x: 2180, y: 1450, r: 215 },
+      { x: 2720, y: 2050, r: 180 }, { x: 1820, y: 2820, r: 230 },
+      { x:  480, y: 2880, r: 195 }, { x: 2900, y: 2720, r: 185 },
+      { x: 1550, y: 1550, r: 165 }, { x:  700, y: 3000, r: 155 },
+      { x: 3050, y:  400, r: 175 },
     ];
     for (const { x, y, r } of forests) {
-      g.fillStyle(0x2a5e28, 0.38); g.fillCircle(x, y, r);
-      g.fillStyle(0x1e4a1e, 0.22); g.fillCircle(x, y, r * 0.6);
+      g.fillStyle(0x284a28, 0.55); g.fillCircle(x, y, r);
+      g.fillStyle(0x1e3c1e, 0.35); g.fillCircle(x, y, r * 0.55);
     }
 
-    // Lakes — sand shore + layered water
+    // ── Lakes ─────────────────────────────────────────────────────────────
     const lakes = [
-      { x: 1850, y: 680,  r: 115 },
-      { x: 2720, y: 1180, r:  95 },
-      { x: 380,  y: 2020, r: 125 },
-      { x: 2520, y: 2480, r: 100 },
-      { x: 1380, y: 2680, r:  88 },
-      { x: 820,  y: 1380, r:  95 },
-      { x: 2980, y: 3000, r:  80 },
-      { x: 1600, y: 3100, r:  90 },
+      { x: 1850, y:  680, r: 115 }, { x: 2720, y: 1180, r:  95 },
+      { x:  380, y: 2020, r: 125 }, { x: 2520, y: 2480, r: 100 },
+      { x: 1380, y: 2680, r:  88 }, { x:  820, y: 1380, r:  95 },
+      { x: 2980, y: 3000, r:  80 }, { x: 1600, y: 3100, r:  90 },
     ];
     for (const { x, y, r } of lakes) {
-      g.fillStyle(0xc8a558);        g.fillCircle(x, y, r + 32); // outer sand
-      g.fillStyle(0xdcba74);        g.fillCircle(x, y, r + 18); // inner sand
-      g.fillStyle(0xe8ca90);        g.fillCircle(x, y, r +  6); // wet sand
-      g.fillStyle(0x1a5c8a);        g.fillCircle(x, y, r);      // deep water
-      g.fillStyle(0x2474b0);        g.fillCircle(x, y, r * 0.78);
-      g.fillStyle(0x3584c8);        g.fillCircle(x, y, r * 0.58);
-      g.fillStyle(0x50a0de);        g.fillCircle(x, y, r * 0.36);
-      g.fillStyle(0x80c8f0, 0.45);  g.fillCircle(x - r * 0.22, y - r * 0.28, r * 0.14); // glint
+      g.fillStyle(0xc8a558);       g.fillCircle(x, y, r + 36);
+      g.fillStyle(0xdcba74);       g.fillCircle(x, y, r + 20);
+      g.fillStyle(0xe8ca90);       g.fillCircle(x, y, r +  7);
+      g.fillStyle(0x1a5c8a);       g.fillCircle(x, y, r);
+      g.fillStyle(0x2474b0);       g.fillCircle(x, y, r * 0.78);
+      g.fillStyle(0x3584c8);       g.fillCircle(x, y, r * 0.58);
+      g.fillStyle(0x50a0de);       g.fillCircle(x, y, r * 0.36);
+      g.fillStyle(0x80c8f0, 0.45); g.fillCircle(x - r * 0.22, y - r * 0.28, r * 0.14);
     }
 
-    // Dirt road through market (cross-shaped)
+    // ── Dirt road through market ───────────────────────────────────────────
     const MX = MARKET_X, MY = MARKET_Y;
-    g.fillStyle(0x7a5c28, 0.55);
-    g.fillRect(MX - 500, MY - 10, 1000, 20);
-    g.fillRect(MX - 10,  MY - 500, 20, 1000);
-    g.fillStyle(0x9a7c48, 0.28);
-    g.fillRect(MX - 500, MY - 17, 1000, 7);
-    g.fillRect(MX - 500, MY + 10, 1000, 7);
-    g.fillRect(MX - 17,  MY - 500, 7, 1000);
-    g.fillRect(MX + 10,  MY - 500, 7, 1000);
+    g.fillStyle(0x7a5c28, 0.6);
+    g.fillRect(MX - 600, MY - 11, 1200, 22);
+    g.fillRect(MX - 11,  MY - 600, 22, 1200);
+    g.fillStyle(0xaa8848, 0.22);
+    g.fillRect(MX - 600, MY - 19, 1200, 8);
+    g.fillRect(MX - 600, MY + 11, 1200, 8);
+    g.fillRect(MX - 19,  MY - 600, 8, 1200);
+    g.fillRect(MX + 11,  MY - 600, 8, 1200);
   }
 
   // ── Pixel art textures ────────────────────────────────────────────────────
@@ -317,32 +325,43 @@ export class GameScene extends Phaser.Scene {
     const dark = (c: number, f: number) => lerp(c, 0x000000, f);
     const lite = (c: number, f: number) => lerp(c, 0xffffff, f);
 
-    // ── Grass tile (64×64) ───────────────────────────────────────────────
-    g.fillStyle(0x4a7c59); g.fillRect(0, 0, 64, 64);
+    // ── Grass tile (64×64) — bright varied base ──────────────────────────
+    g.fillStyle(0x52965e); g.fillRect(0, 0, 64, 64); // base: vivid green
+    // Darker irregular patches
     for (const [x, y, w, h] of [
-      [6, 8, 12, 8], [26, 2, 10, 6], [44, 18, 14, 8], [2, 36, 12, 10], [30, 46, 14, 8],
-      [50, 2, 12, 8], [14, 22, 8, 12], [42, 38, 16, 10], [18, 50, 10, 10], [56, 28, 8, 12],
-    ] as [number, number, number, number][]) {
-      g.fillStyle(0x3a6848); g.fillRect(x, y, w, h);
+      [0, 0, 22, 20], [42, 0, 22, 18], [0, 46, 18, 18], [46, 46, 18, 18],
+      [20, 20, 24, 24], [0, 22, 14, 20], [50, 24, 14, 20],
+    ] as [number,number,number,number][]) {
+      g.fillStyle(0x3e7848); g.fillRect(x, y, w, h);
     }
+    // Lighter patches
     for (const [x, y, w, h] of [
-      [14, 6, 8, 6], [38, 14, 10, 6], [8, 30, 10, 6], [28, 36, 8, 6], [52, 44, 10, 6],
-    ] as [number, number, number, number][]) {
-      g.fillStyle(0x5a9068); g.fillRect(x, y, w, h);
+      [10, 4, 14, 12], [40, 6, 14, 12], [4, 34, 12, 16], [48, 34, 12, 16],
+      [26, 8, 12, 10], [26, 46, 12, 14],
+    ] as [number,number,number,number][]) {
+      g.fillStyle(0x62a86e); g.fillRect(x, y, w, h);
     }
+    // Bright highlights
+    for (const [x, y, w, h] of [
+      [14, 6, 8, 8], [44, 8, 8, 8], [6, 36, 8, 10], [50, 36, 8, 10], [28, 10, 8, 7],
+    ] as [number,number,number,number][]) {
+      g.fillStyle(0x72b87e); g.fillRect(x, y, w, h);
+    }
+    // Grass blade tufts
     for (const [tx, ty] of [
-      [5,12], [20,8], [32,4], [48,10], [12,24], [36,20], [58,14],
-      [4,42], [22,38], [40,30], [54,36], [10,56], [30,58], [44,52], [60,48],
+      [4,10],[12,2],[22,6],[34,2],[48,4],[60,10],
+      [2,24],[16,18],[30,22],[46,20],[58,24],
+      [6,40],[20,36],[32,30],[44,38],[58,42],
+      [2,56],[18,50],[28,54],[42,48],[56,56],
     ]) {
-      g.fillStyle(0x3a6848); g.fillRect(tx, ty, 1, 3); g.fillRect(tx+2, ty+1, 1, 2);
+      g.fillStyle(0x3a6840); g.fillRect(tx, ty, 1, 3); g.fillRect(tx+2, ty+1, 1, 3);
     }
-    for (const [fx, fy] of [[20,14], [50,34], [6,30], [32,52], [44,6]]) {
-      g.fillStyle(0xf0c040); g.fillRect(fx, fy, 2, 2);
-      g.fillStyle(0xfff060); g.fillRect(fx, fy, 1, 1);
+    // Flowers
+    for (const [fx, fy] of [[16,4],[50,6],[8,32],[56,34],[28,50]]) {
+      g.fillStyle(0xf0c040); g.fillRect(fx, fy, 2, 2); g.fillStyle(0xfff060); g.fillRect(fx, fy, 1, 1);
     }
-    for (const [fx, fy] of [[36,8], [14,46], [54,52], [8,16], [26,28]]) {
-      g.fillStyle(0xdd6688); g.fillRect(fx, fy, 2, 2);
-      g.fillStyle(0xff88aa); g.fillRect(fx, fy, 1, 1);
+    for (const [fx, fy] of [[36,10],[14,48],[54,50],[4,20],[46,28]]) {
+      g.fillStyle(0xdd6688); g.fillRect(fx, fy, 2, 2); g.fillStyle(0xff88aa); g.fillRect(fx, fy, 1, 1);
     }
     g.generateTexture("grass_tile", 64, 64);
 
@@ -414,25 +433,44 @@ export class GameScene extends Phaser.Scene {
     makePlayer(0x7f8c8d, "player_ai");
     makePlayer(0xc0392b, "player_other");
 
-    // ── Tree (18×28) ─────────────────────────────────────────────────────
+    // ── Tree (36×54) — large lush canopy ─────────────────────────────────
     g.clear();
-    g.fillStyle(0x155020); g.fillRect(1, 10, 16, 6);            // canopy shadow
-    g.fillStyle(0x1e6b1e); g.fillRect(1,  7, 16, 7); g.fillRect(3, 14, 12, 2); // dark canopy
-    g.fillStyle(0x2d8b2d); g.fillRect(3,  4, 12, 8); g.fillRect(2,  8, 14, 4); // mid canopy
-    g.fillStyle(0x3dab3d); g.fillRect(4,  1, 10, 8); g.fillRect(5,  5,  8, 4); // upper
-    g.fillStyle(0x4dc04d); g.fillRect(6,  0,  6, 4); g.fillRect(7,  0,  4, 2); // tip
-    g.fillStyle(0x6de06d); // highlight sparkles
-    g.fillRect(8, 0, 1, 1); g.fillRect(6, 2, 1, 1); g.fillRect(11, 3, 1, 1);
-    g.fillRect(5, 6, 1, 1); g.fillRect(13, 7, 1, 1); g.fillRect(3, 9, 1, 1);
-    g.fillRect(14, 11, 1, 1); g.fillRect(4, 12, 1, 1);
-    g.fillStyle(0x8b5a2b); g.fillRect(7, 15, 4, 9);             // trunk
-    g.fillStyle(0xa07040); g.fillRect(7, 15, 1, 9);             // trunk highlight
-    g.fillStyle(0x5a3a1b); g.fillRect(10, 15, 1, 9);            // trunk shadow
-    g.fillStyle(0x7a5028); g.fillRect(8, 17, 1, 3); g.fillRect(9, 21, 1, 2); // bark
-    g.fillStyle(0x6b3d1b); g.fillRect(3, 23, 4, 2); g.fillRect(2, 25, 3, 2); // left root
-    g.fillStyle(0x6b3d1b); g.fillRect(11, 23, 4, 2); g.fillRect(13, 25, 3, 2); // right root
-    g.fillStyle(0x8b5a2b); g.fillRect(3, 23, 1, 1); g.fillRect(13, 23, 1, 1);
-    g.generateTexture("tree", 18, 28);
+    // Ground shadow
+    g.fillStyle(0x1a3a1a, 0.5); g.fillRect(8, 46, 20, 8);
+    // Roots
+    g.fillStyle(0x5a3010); g.fillRect(4, 46, 8, 4); g.fillRect(2, 49, 7, 3);
+    g.fillRect(24, 46, 8, 4); g.fillRect(27, 49, 7, 3);
+    g.fillStyle(0x7a4a22); g.fillRect(4, 46, 2, 2); g.fillRect(24, 46, 2, 2);
+    // Trunk
+    g.fillStyle(0x6b4010); g.fillRect(14, 28, 8, 22);
+    g.fillStyle(0x8b5a2b); g.fillRect(14, 28, 6, 22);
+    g.fillStyle(0xa07040); g.fillRect(14, 28, 2, 22);
+    g.fillStyle(0x5a3010); g.fillRect(20, 28, 2, 22);
+    // Bark detail
+    g.fillStyle(0x7a4a22);
+    g.fillRect(15, 31, 1, 5); g.fillRect(17, 37, 1, 4); g.fillRect(16, 44, 1, 4);
+    // Canopy — bottom shadow ring
+    g.fillStyle(0x0f3a10); g.fillRect(2, 22, 32, 10);
+    g.fillStyle(0x124a14); g.fillRect(0, 18, 36, 12); g.fillRect(2, 28, 32, 4);
+    // Canopy — dark layer
+    g.fillStyle(0x1a6418); g.fillRect(2, 12, 32, 16); g.fillRect(0, 16, 36, 12);
+    // Canopy — mid layer
+    g.fillStyle(0x2a8428); g.fillRect(4,  8, 28, 18); g.fillRect(2, 14, 32, 12);
+    // Canopy — bright layer
+    g.fillStyle(0x3aa438); g.fillRect(6,  4, 24, 16); g.fillRect(4, 10, 28, 12);
+    // Canopy — top
+    g.fillStyle(0x4ab848); g.fillRect(10,  1, 16, 10); g.fillRect(8,  5, 20, 8);
+    g.fillStyle(0x58cc56); g.fillRect(13,  0, 10,  6); g.fillRect(11,  2, 14,  5);
+    // Highlights
+    g.fillStyle(0x70e068);
+    g.fillRect(15, 0, 2, 1); g.fillRect(11, 2, 1, 1); g.fillRect(22, 3, 1, 1);
+    g.fillRect(8,  6, 1, 1); g.fillRect(25, 7, 1, 1); g.fillRect(5, 10, 1, 1);
+    g.fillRect(28,12, 1, 1); g.fillRect(4, 14, 1, 1); g.fillRect(26,16, 1, 1);
+    g.fillRect(6, 18, 1, 1); g.fillRect(30,20, 1, 1);
+    // Autumn touches (a few warm pixels)
+    g.fillStyle(0xd4a030);
+    g.fillRect(9, 8, 1, 1); g.fillRect(24, 12, 1, 1); g.fillRect(6, 16, 1, 1);
+    g.generateTexture("tree", 36, 54);
 
     // ── Rock (16×12) ─────────────────────────────────────────────────────
     g.clear();
