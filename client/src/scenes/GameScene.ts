@@ -11,7 +11,10 @@ import { MarketPanel } from "../ui/MarketPanel";
 import { CraftPanel } from "../ui/CraftPanel";
 import { ChestPanel } from "../ui/ChestPanel";
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL ?? "ws://localhost:2567";
+const SERVER_URL: string = import.meta.env.VITE_SERVER_URL ??
+  (import.meta.env.PROD
+    ? `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`
+    : "ws://localhost:2567");
 
 
 export class GameScene extends Phaser.Scene {
@@ -82,6 +85,7 @@ export class GameScene extends Phaser.Scene {
     this.createTextures();
     this.createAnimations();
     this.add.tileSprite(0, 0, W, W, "grass_tile").setOrigin(0, 0).setDepth(0);
+    this.drawTerrain();
 
     this.cameras.main.setBounds(0, 0, W, W);
 
@@ -242,6 +246,61 @@ export class GameScene extends Phaser.Scene {
       this.inventorySlots.push(bg, tx);
       i++;
     });
+  }
+
+  // ── Terrain (lakes, forest patches, paths) ────────────────────────────────
+
+  private drawTerrain() {
+    const g = this.add.graphics().setDepth(1);
+
+    // Forest floor patches — dark green tint under tree clusters
+    const forests = [
+      { x: 380,  y: 280,  r: 200 }, { x: 950,  y: 1150, r: 180 },
+      { x: 1280, y: 380,  r: 160 }, { x: 2050, y: 260,  r: 210 },
+      { x: 2820, y: 750,  r: 175 }, { x: 290,  y: 1820, r: 185 },
+      { x: 1080, y: 2250, r: 165 }, { x: 2180, y: 1450, r: 190 },
+      { x: 2720, y: 2050, r: 155 }, { x: 1820, y: 2820, r: 200 },
+      { x: 480,  y: 2880, r: 170 }, { x: 2900, y: 2720, r: 160 },
+      { x: 1550, y: 1550, r: 140 }, { x: 700,  y: 3000, r: 130 },
+      { x: 3050, y: 400,  r: 150 },
+    ];
+    for (const { x, y, r } of forests) {
+      g.fillStyle(0x2a5e28, 0.38); g.fillCircle(x, y, r);
+      g.fillStyle(0x1e4a1e, 0.22); g.fillCircle(x, y, r * 0.6);
+    }
+
+    // Lakes — sand shore + layered water
+    const lakes = [
+      { x: 1850, y: 680,  r: 115 },
+      { x: 2720, y: 1180, r:  95 },
+      { x: 380,  y: 2020, r: 125 },
+      { x: 2520, y: 2480, r: 100 },
+      { x: 1380, y: 2680, r:  88 },
+      { x: 820,  y: 1380, r:  95 },
+      { x: 2980, y: 3000, r:  80 },
+      { x: 1600, y: 3100, r:  90 },
+    ];
+    for (const { x, y, r } of lakes) {
+      g.fillStyle(0xc8a558);        g.fillCircle(x, y, r + 32); // outer sand
+      g.fillStyle(0xdcba74);        g.fillCircle(x, y, r + 18); // inner sand
+      g.fillStyle(0xe8ca90);        g.fillCircle(x, y, r +  6); // wet sand
+      g.fillStyle(0x1a5c8a);        g.fillCircle(x, y, r);      // deep water
+      g.fillStyle(0x2474b0);        g.fillCircle(x, y, r * 0.78);
+      g.fillStyle(0x3584c8);        g.fillCircle(x, y, r * 0.58);
+      g.fillStyle(0x50a0de);        g.fillCircle(x, y, r * 0.36);
+      g.fillStyle(0x80c8f0, 0.45);  g.fillCircle(x - r * 0.22, y - r * 0.28, r * 0.14); // glint
+    }
+
+    // Dirt road through market (cross-shaped)
+    const MX = MARKET_X, MY = MARKET_Y;
+    g.fillStyle(0x7a5c28, 0.55);
+    g.fillRect(MX - 500, MY - 10, 1000, 20);
+    g.fillRect(MX - 10,  MY - 500, 20, 1000);
+    g.fillStyle(0x9a7c48, 0.28);
+    g.fillRect(MX - 500, MY - 17, 1000, 7);
+    g.fillRect(MX - 500, MY + 10, 1000, 7);
+    g.fillRect(MX - 17,  MY - 500, 7, 1000);
+    g.fillRect(MX + 10,  MY - 500, 7, 1000);
   }
 
   // ── Pixel art textures ────────────────────────────────────────────────────

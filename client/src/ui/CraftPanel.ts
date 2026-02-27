@@ -1,4 +1,3 @@
-import Phaser from "phaser";
 import { Room } from "colyseus.js";
 import {
   ITEMS, ItemId, RECIPES, COOK_RECIPES, ADVANCED_COOK_RECIPES,
@@ -7,252 +6,149 @@ import {
   WATER_WELL_STONE_COST, WATER_WELL_WOOD_COST,
   LAND_PLOT_PRICE,
 } from "@game/shared";
-import type { GameState, PlayerSchema } from "../../../server/src/rooms/GameRoom";
-
-const PX = 180, PY = 80, PW = 440, PH = 580;
+import type { GameState } from "../../../server/src/rooms/GameRoom";
 
 export class CraftPanel {
-  private scene: Phaser.Scene;
   private room: Room<GameState>;
   private sessionId: string;
 
   public isOpen = false;
-  private objects: Phaser.GameObjects.GameObject[] = [];
+  private panel: HTMLElement;
+  private scroll: HTMLElement;
   private keyHandler!: (e: KeyboardEvent) => void;
 
-  constructor(scene: Phaser.Scene, room: Room<GameState>, sessionId: string) {
-    this.scene     = scene;
+  constructor(_scene: unknown, room: Room<GameState>, sessionId: string) {
     this.room      = room;
     this.sessionId = sessionId;
+    this.panel     = document.getElementById("craft-panel")!;
+    this.scroll    = document.getElementById("craft-panel-scroll")!;
+
+    document.getElementById("craft-panel-close")!
+      .addEventListener("click", () => this.close());
 
     const me = room.state.players.get(sessionId);
     if (me) {
-      let renderPending = false;
-      const debouncedRender = () => {
-        if (renderPending || !this.isOpen) return;
-        renderPending = true;
-        requestAnimationFrame(() => { renderPending = false; if (this.isOpen) this.render(); });
+      let pending = false;
+      const update = () => {
+        if (pending || !this.isOpen) return;
+        pending = true;
+        requestAnimationFrame(() => { pending = false; if (this.isOpen) this.render(); });
       };
-      me.inventory.onAdd(debouncedRender);
-      me.inventory.onChange(debouncedRender);
-      me.inventory.onRemove(debouncedRender);
+      me.inventory.onAdd(update);
+      me.inventory.onChange(update);
+      me.inventory.onRemove(update);
     }
   }
 
   open() {
     this.isOpen = true;
-    this.keyHandler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") this.close();
-    };
-    window.addEventListener("keydown", this.keyHandler);
+    this.panel.style.display = "flex";
     this.render();
+    this.keyHandler = (e: KeyboardEvent) => { if (e.key === "Escape") this.close(); };
+    window.addEventListener("keydown", this.keyHandler);
   }
 
   close() {
     this.isOpen = false;
+    this.panel.style.display = "none";
     window.removeEventListener("keydown", this.keyHandler);
-    this.clear();
-  }
-
-  // ── Helpers ─────────────────────────────────────────────────────────────
-
-  private clear() {
-    this.objects.forEach(o => (o as any).destroy());
-    this.objects = [];
-  }
-
-  private go<T extends Phaser.GameObjects.GameObject>(obj: T): T {
-    this.objects.push(obj);
-    return obj;
-  }
-
-  private txt(x: number, y: number, s: string, style: Phaser.Types.GameObjects.Text.TextStyle = {}) {
-    return this.go(this.scene.add.text(x, y, s, { fontSize: "10px", color: "#ffffff", ...style })
-      .setScrollFactor(0).setDepth(52));
-  }
-
-  private bg(x: number, y: number, w: number, h: number, color: number, alpha = 1) {
-    return this.go(this.scene.add.rectangle(x, y, w, h, color, alpha)
-      .setOrigin(0, 0).setScrollFactor(0).setDepth(51));
-  }
-
-  private btn(x: number, y: number, w: number, h: number, label: string, color: number, cb: () => void) {
-    const r = this.go(this.scene.add.rectangle(x, y, w, h, color)
-      .setOrigin(0, 0).setScrollFactor(0).setDepth(53).setInteractive());
-    const t = this.go(this.scene.add.text(x + w / 2, y + h / 2, label, { fontSize: "9px", color: "#fff" })
-      .setScrollFactor(0).setDepth(54).setOrigin(0.5));
-    r.on("pointerdown", cb);
-    r.on("pointerover",  () => r.setFillStyle(Phaser.Display.Color.IntegerToColor(color).lighten(20).color));
-    r.on("pointerout",   () => r.setFillStyle(color));
-    return { r, t };
-  }
-
-  private divider(y: number) {
-    const g = this.go(this.scene.add.graphics().setScrollFactor(0).setDepth(51));
-    (g as Phaser.GameObjects.Graphics).lineStyle(1, 0x2244aa).lineBetween(PX + 8, y, PX + PW - 8, y);
   }
 
   // ── Render ──────────────────────────────────────────────────────────────
 
   private render() {
-    this.clear();
-    const me = this.room.state.players.get(this.sessionId);
+    const me   = this.room.state.players.get(this.sessionId);
+    const inv  = (id: string) => me?.inventory.get(id) ?? 0;
+    const coins = (me as any)?.coins ?? 0;
 
-    // Background + border
-    this.bg(PX, PY, PW, PH, 0x0a0a18, 0.97);
-    this.go(this.scene.add.rectangle(PX + PW / 2, PY + PH / 2, PW, PH)
-      .setStrokeStyle(2, 0x4a90d9, 1).setScrollFactor(0).setDepth(51).setFillStyle(0, 0));
+    const ing = (id: string, qty: number) => {
+      const have = inv(id);
+      const ok   = have >= qty;
+      const name = ITEMS[id as ItemId]?.name ?? id;
+      return `<span class="cp-ing ${ok ? "ok" : "need"}">${name}: ${have}/${qty}</span>`;
+    };
 
-    // Title + close
-    this.txt(PX + 12, PY + 10, "CRAFTING", { fontSize: "13px", color: "#f0c040" });
-    const closeX = this.go(this.scene.add.text(PX + PW - 22, PY + 10, "✕", { fontSize: "13px", color: "#ff4444" })
-      .setScrollFactor(0).setDepth(54).setOrigin(1, 0).setInteractive());
-    closeX.on("pointerdown", () => this.close());
+    let html = "";
 
-    this.divider(PY + 32);
-
-    let y = PY + 40;
-
-    // ── Workbench recipes ─────────────────────────────────────────────────
-    this.txt(PX + 12, y, "WORKBENCH", { fontSize: "9px", color: "#aaaaaa" });
-    y += 16;
-
+    // ── Workbench ──────────────────────────────────────────────────────────
+    html += `<div class="cp-section">Workbench</div>`;
     for (const [recipeId, recipe] of Object.entries(RECIPES)) {
-      const outputName = ITEMS[recipe.output]?.name ?? recipe.output;
-      this.bg(PX + 8, y - 2, PW - 16, 50, 0x111122);
-      this.txt(PX + 12, y + 2, `${outputName} x${recipe.outputQty}`, { fontSize: "11px" });
-
-      let ix = PX + 12;
-      let canCraft = true;
-      for (const [itemId, needed] of Object.entries(recipe.inputs)) {
-        const have = me?.inventory.get(itemId) ?? 0;
-        const name = ITEMS[itemId as ItemId]?.name ?? itemId;
-        const ok   = have >= (needed as number);
-        if (!ok) canCraft = false;
-        this.txt(ix, y + 20, `${name}: ${have}/${needed}`, { fontSize: "9px", color: ok ? "#44bb44" : "#ff4444" });
-        ix += 110;
-      }
-
-      this.btn(PX + PW - 80, y + 12, 65, 24, "Craft", canCraft ? 0x27ae60 : 0x444444, () => {
-        if (canCraft) this.room.send("craft", { recipeId });
-      });
-
-      y += 54;
+      const name     = ITEMS[recipe.output]?.name ?? recipe.output;
+      const canCraft = Object.entries(recipe.inputs).every(([id, qty]) => inv(id) >= (qty as number));
+      const ings     = Object.entries(recipe.inputs).map(([id, qty]) => ing(id, qty as number)).join("");
+      html += `<div class="cp-row">
+        <button class="cp-btn" data-msg="craft" data-payload='${JSON.stringify({ recipeId })}' ${canCraft ? "" : "disabled"}>Craft</button>
+        <div class="cp-name">${name} ×${recipe.outputQty}</div>
+        <div class="cp-ings">${ings}</div>
+      </div>`;
     }
 
-    // ── Campfire cooking ──────────────────────────────────────────────────
-    y += 4;
-    this.divider(y);
-    y += 8;
-
-    this.txt(PX + 12, y, "CAMPFIRE COOKING  (use [E] at campfire)", { fontSize: "9px", color: "#aaaaaa" });
-    y += 16;
-
+    // ── Campfire cooking ───────────────────────────────────────────────────
+    html += `<div class="cp-section">Campfire Cooking — [E] near campfire</div>`;
     for (const [itemId, recipe] of Object.entries(COOK_RECIPES)) {
       if (!recipe) continue;
-      const inputName  = ITEMS[itemId as ItemId]?.name ?? itemId;
-      const outputName = ITEMS[recipe.output]?.name ?? recipe.output;
-      const have       = me?.inventory.get(itemId) ?? 0;
-      const enough     = have >= recipe.inputQty;
-
-      this.bg(PX + 8, y - 2, PW - 16, 38, 0x111122);
-      this.txt(PX + 12, y + 2, `${inputName} x${recipe.inputQty}  →  ${outputName} x${recipe.outputQty}`, { fontSize: "10px" });
-      this.txt(PX + 12, y + 18, `Have: ${have}/${recipe.inputQty}`, { fontSize: "9px", color: enough ? "#44bb44" : "#ff4444" });
-      this.txt(PX + 200, y + 18, `${recipe.timeMs / 1000}s`, { fontSize: "9px", color: "#666688" });
-
-      y += 42;
+      const inName  = ITEMS[itemId as ItemId]?.name ?? itemId;
+      const outName = ITEMS[recipe.output]?.name ?? recipe.output;
+      const have    = inv(itemId);
+      const ok      = have >= recipe.inputQty;
+      html += `<div class="cp-row">
+        <div class="cp-name">${inName} ×${recipe.inputQty} → ${outName} ×${recipe.outputQty}</div>
+        <div class="cp-ings">
+          <span class="cp-ing ${ok ? "ok" : "need"}">Have: ${have}/${recipe.inputQty}</span>
+          <span class="cp-time">${recipe.timeMs / 1000}s</span>
+        </div>
+      </div>`;
     }
 
-    // ── Advanced campfire cooking ─────────────────────────────────────────
-    y += 4;
-    this.txt(PX + 12, y, "ADVANCED COOKING  (multi-ingredient, use [E] at campfire)", { fontSize: "9px", color: "#aaaaaa" });
-    y += 16;
-
+    // ── Advanced cooking ───────────────────────────────────────────────────
+    html += `<div class="cp-section">Advanced Cooking — [E] near campfire</div>`;
     for (const [, recipe] of Object.entries(ADVANCED_COOK_RECIPES)) {
-      const outputName = ITEMS[recipe.output]?.name ?? recipe.output;
-      this.bg(PX + 8, y - 2, PW - 16, 44, 0x111133);
-      this.txt(PX + 12, y + 2, `→  ${outputName}`, { fontSize: "10px", color: "#88ccff" });
-
-      let ix = PX + 12;
-      for (const [itemId, needed] of Object.entries(recipe.inputs)) {
-        const have = me?.inventory.get(itemId) ?? 0;
-        const name = ITEMS[itemId as ItemId]?.name ?? itemId;
-        const ok   = have >= (needed as number);
-        this.txt(ix, y + 20, `${name}: ${have}/${needed}`, { fontSize: "9px", color: ok ? "#44bb44" : "#ff4444" });
-        ix += 120;
-      }
-      this.txt(PX + PW - 70, y + 20, `${recipe.timeMs / 1000}s`, { fontSize: "9px", color: "#666688" });
-
-      y += 48;
+      const outName = ITEMS[recipe.output]?.name ?? recipe.output;
+      const ings    = Object.entries(recipe.inputs).map(([id, qty]) => ing(id, qty as number)).join("");
+      html += `<div class="cp-row">
+        <div class="cp-name" style="color:#88ccff">→ ${outName}</div>
+        <div class="cp-ings">${ings} <span class="cp-time">${recipe.timeMs / 1000}s</span></div>
+      </div>`;
     }
 
-    // ── Structures ────────────────────────────────────────────────────────
-    y += 4;
-    this.divider(y);
-    y += 8;
+    // ── Structures ─────────────────────────────────────────────────────────
+    html += `<div class="cp-section">Structures — placed at your feet</div>`;
 
-    this.txt(PX + 12, y, "STRUCTURES  (placed at your feet)", { fontSize: "9px", color: "#aaaaaa" });
-    y += 16;
+    const structs: { name: string; desc: string; cost: Record<string, number>; msg: string }[] = [
+      { name: "Forge",          desc: "smelt iron ore → iron ingot",        cost: { stone: FORGE_STONE_COST,          wood: FORGE_WOOD_COST },          msg: "place_forge" },
+      { name: "Blast Furnace",  desc: "iron ingot + coal → steel ingot",    cost: { stone: BLAST_FURNACE_STONE_COST,  wood: BLAST_FURNACE_WOOD_COST },  msg: "place_blast_furnace" },
+      { name: "Water Well",     desc: "[E] to draw 3 water",                cost: { stone: WATER_WELL_STONE_COST,     wood: WATER_WELL_WOOD_COST },     msg: "place_water_well" },
+      { name: "Chest",          desc: "permanent storage, one per player",  cost: { wood: CHEST_WOOD_COST },                                            msg: "place_chest" },
+    ];
 
-    // Forge row
-    const haveStoneForge = me?.inventory.get("stone") ?? 0;
-    const haveWoodForge  = me?.inventory.get("wood")  ?? 0;
-    const canForge = haveStoneForge >= FORGE_STONE_COST && haveWoodForge >= FORGE_WOOD_COST;
-    this.bg(PX + 8, y - 2, PW - 16, 42, 0x111122);
-    this.txt(PX + 12, y + 2, "Forge  (smelt iron ore → iron ingot)", { fontSize: "10px" });
-    this.txt(PX + 12, y + 20, `Stone: ${haveStoneForge}/${FORGE_STONE_COST}`, { fontSize: "9px", color: haveStoneForge >= FORGE_STONE_COST ? "#44bb44" : "#ff4444" });
-    this.txt(PX + 120, y + 20, `Wood: ${haveWoodForge}/${FORGE_WOOD_COST}`, { fontSize: "9px", color: haveWoodForge >= FORGE_WOOD_COST ? "#44bb44" : "#ff4444" });
-    this.btn(PX + PW - 100, y + 8, 85, 24, "Build Forge", canForge ? 0x8b4513 : 0x444444, () => {
-      if (canForge) { this.room.send("place_forge", {}); this.close(); }
+    for (const s of structs) {
+      const canBuild = Object.entries(s.cost).every(([id, qty]) => inv(id) >= qty);
+      const ings     = Object.entries(s.cost).map(([id, qty]) => ing(id, qty)).join("");
+      html += `<div class="cp-row">
+        <button class="cp-btn" data-msg="${s.msg}" data-payload="{}" data-close="1" ${canBuild ? "" : "disabled"}>Build</button>
+        <div class="cp-name">${s.name} <span class="cp-desc">${s.desc}</span></div>
+        <div class="cp-ings">${ings}</div>
+      </div>`;
+    }
+
+    // Land plot
+    const canPlot = coins >= LAND_PLOT_PRICE;
+    html += `<div class="cp-row">
+      <button class="cp-btn" data-msg="buy_plot" data-payload="{}" data-close="1" ${canPlot ? "" : "disabled"}>Buy</button>
+      <div class="cp-name">Land Plot <span class="cp-desc">128×128 area, blocks others from building</span></div>
+      <div class="cp-ings"><span class="cp-ing ${canPlot ? "ok" : "need"}">Coins: ${coins}/${LAND_PLOT_PRICE}</span></div>
+    </div>`;
+
+    this.scroll.innerHTML = html;
+
+    // Bind button events
+    this.scroll.querySelectorAll<HTMLButtonElement>("button[data-msg]").forEach(btn => {
+      btn.addEventListener("click", e => {
+        e.stopPropagation();
+        const payload = JSON.parse(btn.dataset.payload ?? "{}");
+        this.room.send(btn.dataset.msg!, payload);
+        if (btn.dataset.close) this.close();
+      });
     });
-    y += 46;
-
-    // Blast Furnace row
-    const haveStoneBF = me?.inventory.get("stone") ?? 0;
-    const haveWoodBF  = me?.inventory.get("wood")  ?? 0;
-    const canBF = haveStoneBF >= BLAST_FURNACE_STONE_COST && haveWoodBF >= BLAST_FURNACE_WOOD_COST;
-    this.bg(PX + 8, y - 2, PW - 16, 42, 0x111122);
-    this.txt(PX + 12, y + 2, "Blast Furnace  (smelt iron+coal → steel ingot)", { fontSize: "10px" });
-    this.txt(PX + 12, y + 20, `Stone: ${haveStoneBF}/${BLAST_FURNACE_STONE_COST}`, { fontSize: "9px", color: haveStoneBF >= BLAST_FURNACE_STONE_COST ? "#44bb44" : "#ff4444" });
-    this.txt(PX + 120, y + 20, `Wood: ${haveWoodBF}/${BLAST_FURNACE_WOOD_COST}`, { fontSize: "9px", color: haveWoodBF >= BLAST_FURNACE_WOOD_COST ? "#44bb44" : "#ff4444" });
-    this.btn(PX + PW - 110, y + 8, 95, 24, "Build Blast Furnace", canBF ? 0x8b2500 : 0x444444, () => {
-      if (canBF) { this.room.send("place_blast_furnace", {}); this.close(); }
-    });
-    y += 46;
-
-    // Water Well row
-    const haveStoneWell = me?.inventory.get("stone") ?? 0;
-    const haveWoodWell  = me?.inventory.get("wood")  ?? 0;
-    const canWell = haveStoneWell >= WATER_WELL_STONE_COST && haveWoodWell >= WATER_WELL_WOOD_COST;
-    this.bg(PX + 8, y - 2, PW - 16, 42, 0x111122);
-    this.txt(PX + 12, y + 2, "Water Well  (use [E] to get 3 water)", { fontSize: "10px" });
-    this.txt(PX + 12, y + 20, `Stone: ${haveStoneWell}/${WATER_WELL_STONE_COST}`, { fontSize: "9px", color: haveStoneWell >= WATER_WELL_STONE_COST ? "#44bb44" : "#ff4444" });
-    this.txt(PX + 120, y + 20, `Wood: ${haveWoodWell}/${WATER_WELL_WOOD_COST}`, { fontSize: "9px", color: haveWoodWell >= WATER_WELL_WOOD_COST ? "#44bb44" : "#ff4444" });
-    this.btn(PX + PW - 100, y + 8, 85, 24, "Build Well", canWell ? 0x1a6a9a : 0x444444, () => {
-      if (canWell) { this.room.send("place_water_well", {}); this.close(); }
-    });
-    y += 46;
-
-    // Chest row
-    const haveWoodChest = me?.inventory.get("wood") ?? 0;
-    const canChest = haveWoodChest >= CHEST_WOOD_COST;
-    this.bg(PX + 8, y - 2, PW - 16, 42, 0x111122);
-    this.txt(PX + 12, y + 2, "Chest  (permanent storage, one per player)", { fontSize: "10px" });
-    this.txt(PX + 12, y + 20, `Wood: ${haveWoodChest}/${CHEST_WOOD_COST}`, { fontSize: "9px", color: canChest ? "#44bb44" : "#ff4444" });
-    this.btn(PX + PW - 100, y + 8, 85, 24, "Build Chest", canChest ? 0x27ae60 : 0x444444, () => {
-      if (canChest) { this.room.send("place_chest", {}); this.close(); }
-    });
-    y += 46;
-
-    // Buy Land Plot row
-    const myCoins  = (me as any)?.coins ?? 0;
-    const canPlot  = myCoins >= LAND_PLOT_PRICE;
-    this.bg(PX + 8, y - 2, PW - 16, 42, 0x111122);
-    this.txt(PX + 12, y + 2, "Land Plot  (128×128 area, blocks building by others)", { fontSize: "10px" });
-    this.txt(PX + 12, y + 20, `Cost: ${LAND_PLOT_PRICE} coins  (you have ${myCoins})`, { fontSize: "9px", color: canPlot ? "#44bb44" : "#ff4444" });
-    this.btn(PX + PW - 100, y + 8, 85, 24, "Buy Plot", canPlot ? 0x8b6914 : 0x444444, () => {
-      if (canPlot) { this.room.send("buy_plot", {}); this.close(); }
-    });
-    y += 46;
   }
 }
