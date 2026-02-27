@@ -721,6 +721,7 @@ export class GameRoom extends Room<GameState> {
       case "chat": {
         const text = message.text?.toString().trim().slice(0, 100);
         if (!text) return;
+        if (text === "/coins") { player.coins += 1000; const u = this.playerUUIDs.get(client.sessionId); if (u) this.savePlayerToDB(player, u); return; }
         this.broadcast("chat_message", { playerId: player.id, playerName: player.name, text });
         break;
       }
